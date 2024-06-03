@@ -9,3 +9,4 @@ redis = aioredis.from_url(
 )
 
 logger = logging.getLogger("uvicorn.error")
+osu_key = os.environ["OSU_API_KEY"]

@@ -1,5 +1,6 @@
-from fastapi.params import Query
+from fastapi import Query
 from enum import IntEnum
+
 
 class Gamemode(IntEnum):
     VANILLA = 0
@@ -7,7 +8,8 @@ class Gamemode(IntEnum):
 
     @property
     def stats_table(self) -> str:
-        return "stats_rx" if self == Gamemode.RELAX else "stats" 
+        return "stats_rx" if self == Gamemode.RELAX else "stats"
+
 
 class Mode(IntEnum):
     STANDARD = 0
@@ -16,7 +18,7 @@ class Mode(IntEnum):
     MANIA = 3
 
     def to_db(self, field: str):
-        """ Converts the fields name, thats depended on the mode, to match the current mode. """
+        """Converts the fields name, thats depended on the mode, to match the current mode."""
         mode = ("std", "taiko", "catch", "mania")[self.value]
         return f"{field}_{mode}"
 
@@ -50,7 +52,7 @@ class ModeAndGamemode:
 
 def parse_including_query(include: list[str] = Query([])) -> list[str]:
     # parses include query field as such:
-    # 
+    #
     # ?include=[stats,clans] = ["stats", "clans"]
     # ?include=stats,clans = ["stats", "clans"]
 
@@ -60,7 +62,7 @@ def parse_including_query(include: list[str] = Query([])) -> list[str]:
     first_include = include[0]
 
     if first_include.startswith("[") and first_include.endswith("]"):
-        first_include = first_include[1:len(first_include) - 1]
+        first_include = first_include[1 : len(first_include) - 1]
 
     all_inc = first_include.split(",")
 

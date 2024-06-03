@@ -1,6 +1,6 @@
-from typing import Any
 from fastapi import Depends
-from app.init_api import router
+from fastapi.responses import ORJSONResponse
+from app.api import router
 from app.utilities import parse_including_query, ModeAndGamemode
 
 import services
@@ -12,30 +12,29 @@ async def user_info(
     user_id: int,
     include: list[str] = Depends(parse_including_query),
     info: ModeAndGamemode = Depends(ModeAndGamemode.parse),
-) -> dict[str, Any]:
+) -> ORJSONResponse:
     if all(inc not in ALLOWED_INCLUDED_FIELDS for inc in include) and include != []:
-        return {"error": "some or all including fields are not valid."}
+        return ORJSONResponse({"error": "some or all including fields are not valid."})
 
     if not (user_info := await services.database.fetch_one(
         "SELECT username, id, registered_time, latest_activity_time, country FROM users WHERE id = :user_id",
         {"user_id": user_id}
     )):
-        return {"error": "user not found."}
+        return ORJSONResponse({"error": "user not found."})
     
     data = dict(user_info)
 
-    if (session := await services.redis.hgetall(f"ragnarok:session:{user_id}")):
+    if (session := await services.redis.hgetall(f"ragnarok:session:{user_id}")): # type: ignore
         session.pop(b"token")
         data["session"] = session
     
-
     if "stats" in include:
         user_stats = await services.database.fetch_one(
             f"SELECT s.{info.mode.to_db("pp")}, s.{info.mode.to_db("accuracy")}, s.{info.mode.to_db("ranked_score")}, " 
             f"s.{info.mode.to_db("total_score")}, s.{info.mode.to_db("playcount")}, s.{info.mode.to_db("playtime")}, "
             f"s.{info.mode.to_db("level")} FROM {info.gamemode.stats_table} s WHERE id = :user_id", {"user_id": user_id}
         )
-        data["stats"] = dict(user_stats)
+        data["stats"] = dict(user_stats) # type: ignore
         
     if "clans" in include:
         clan_info = await services.database.fetch_one(
@@ -43,7 +42,7 @@ async def user_info(
             "INNER JOIN clans c ON c.id = u.clan_id "
             "WHERE u.id = :user_id ", {"user_id": user_id}
         )
-        data["clan"] = dict(clan_info)
+        data["clan"] = dict(clan_info) # type: ignore
 
     if "achievements" in include:
         achievements = await services.database.fetch_all(
@@ -54,4 +53,4 @@ async def user_info(
         )
         data["achievements"] = [dict(ach) for ach in achievements]
 
-    return {"data": data}
+    return ORJSONResponse(data)
