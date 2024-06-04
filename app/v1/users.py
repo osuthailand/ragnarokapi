@@ -1,4 +1,5 @@
-from fastapi import Depends
+from urllib.parse import unquote
+from fastapi import Depends, Query
 from fastapi.responses import ORJSONResponse
 from app.api import router
 from app.utilities import parse_including_query, ModeAndGamemode
@@ -7,7 +8,7 @@ import services
 
 ALLOWED_INCLUDED_FIELDS = ("clans", "stats", "achievements", "badges")
 
-@router.get("/users/{user_id}")
+@router.get("/users/get/{user_id}")
 async def user_info(
     user_id: int,
     include: list[str] = Depends(parse_including_query),
@@ -16,9 +17,11 @@ async def user_info(
     if all(inc not in ALLOWED_INCLUDED_FIELDS for inc in include) and include != []:
         return ORJSONResponse({"error": "some or all including fields are not valid."})
 
+    
+
     if not (user_info := await services.database.fetch_one(
-        "SELECT username, id, registered_time, latest_activity_time, country FROM users WHERE id = :user_id",
-        {"user_id": user_id}
+        "SELECT username, id, registered_time, latest_activity_time, country FROM users WHERE id = :user_id OR username = :username",
+        {"user_id": user_id, "username": user_id}
     )):
         return ORJSONResponse({"error": "user not found."})
     
@@ -54,3 +57,26 @@ async def user_info(
         data["achievements"] = [dict(ach) for ach in achievements]
 
     return ORJSONResponse(data)
+
+@router.get("/users/search")
+async def search_users(query: str) -> ORJSONResponse:
+    safe_query = unquote(query).lower().replace(" ", "_")
+
+    users = await services.database.fetch_all(
+        "SELECT username, id FROM users WHERE safe_username LIKE :query LIMIT 10",
+        {"query": f"%{safe_query}%"}
+    )
+
+    return ORJSONResponse([dict(user) for user in users])
+
+@router.get("/users/exists")
+async def user_exists(username: str) -> ORJSONResponse:
+    user = await services.database.fetch_one(
+        "SELECT username, id FROM users WHERE safe_username = :query LIMIT 10",
+        {"query": unquote(username).lower().replace(" ", "_")}
+    )
+
+    if not user:
+        return ORJSONResponse({"error": "user not found"})
+
+    return ORJSONResponse(dict(user))
