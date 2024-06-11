@@ -6,7 +6,7 @@ from app.utilities import parse_including_query, ModeAndGamemode
 
 import services
 
-ALLOWED_INCLUDED_FIELDS = ("clans", "stats", "achievements", "badges")
+ALLOWED_INCLUDED_FIELDS = ("clans", "stats", "achievements", "badges", "name_history")
 
 @router.get("/users/get/{user_id}")
 async def user_info(
@@ -16,9 +16,7 @@ async def user_info(
 ) -> ORJSONResponse:
     if all(inc not in ALLOWED_INCLUDED_FIELDS for inc in include) and include != []:
         return ORJSONResponse({"error": "some or all including fields are not valid."})
-
     
-
     if not (user_info := await services.database.fetch_one(
         "SELECT username, id, registered_time, latest_activity_time, country FROM users WHERE id = :user_id OR username = :username",
         {"user_id": user_id, "username": user_id}
@@ -55,6 +53,13 @@ async def user_info(
             {"user_id": user_id, "gamemode": info.gamemode, "mode": info.mode}
         )
         data["achievements"] = [dict(ach) for ach in achievements]
+
+    if "name_history" in include:
+        name_history = await services.database.fetch_all(
+            "SELECT changed_username, date FROM name_history WHERE user_id = :user_id",
+            {"user_id": user_id}
+        )
+        data["name_history"] = [dict(name) for name in name_history]
 
     return ORJSONResponse(data)
 

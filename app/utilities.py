@@ -1,5 +1,14 @@
-from fastapi import Query
+import os
+import services
+from typing import Any
+from fastapi import Depends, HTTPException, Query, status
 from enum import IntEnum
+
+from fastapi.security import OAuth2PasswordBearer
+import jwt
+from pydantic import BaseModel
+
+from app.constants.privileges import Privileges
 
 
 class Gamemode(IntEnum):
@@ -67,3 +76,50 @@ def parse_including_query(include: list[str] = Query([])) -> list[str]:
     all_inc = first_include.split(",")
 
     return all_inc
+
+
+class UserData(BaseModel):
+    user_id: int
+    username: str
+    privileges: Privileges
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserData | None:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload: dict[str, Any] = jwt.decode(
+            token, os.getenv("SECRET_KEY"), algorithms=["HS256"]
+        )
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    user_id = payload.get("sub")
+    assert user_id is not None
+
+    data = await services.database.fetch_one(
+        "SELECT username, privileges FROM users WHERE id = :user_id LIMIT 1",
+        {"user_id": user_id},
+    )
+
+    if not data:
+        raise credentials_exception
+
+    return UserData(
+        user_id=user_id,
+        username=data["username"],
+        privileges=Privileges(data["privileges"]),
+    )
+
+
+async def log(user_id: int, note: str) -> None:
+    await services.database.execute(
+        "INSERT INTO logs (user_id, note) VALUES (:user_id, :note)",
+        {"user_id": user_id, "note": note},
+    )
