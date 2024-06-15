@@ -1,4 +1,5 @@
 import os
+
 import services
 from typing import Any
 from fastapi import Depends, HTTPException, Query, status
@@ -16,7 +17,7 @@ class Gamemode(IntEnum):
     RELAX = 1
 
     @property
-    def stats_table(self) -> str:
+    def to_db(self) -> str:
         return "stats_rx" if self == Gamemode.RELAX else "stats"
 
 
@@ -29,7 +30,7 @@ class Mode(IntEnum):
     def to_db(self, field: str):
         """Converts the fields name, thats depended on the mode, to match the current mode."""
         mode = ("std", "taiko", "catch", "mania")[self.value]
-        return f"{field}_{mode}"
+        return f"{field}_{mode} AS {field}"
 
 
 class ModeAndGamemode:
@@ -84,7 +85,7 @@ class UserData(BaseModel):
     privileges: Privileges
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserData | None:
