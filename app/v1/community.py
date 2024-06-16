@@ -47,23 +47,8 @@ async def leaderboard(
 
     users = [dict(user) for user in _users]
 
-    for user in users:
-        # maybe not so smart?? idk
-        user["rank"] = await services.redis.zrevrank(redis_key, str(user["id"])) + 1
-
     return ORJSONResponse({"users": users, "count": len(_user_id_range)})
 
 
 @router.get("/community/plays")
 async def community_plays() -> ORJSONResponse: ...
-
-
-@router.get("/community/pray")
-async def get_prayers() -> int:
-    return await services.database.fetch_val("SELECT COUNT(*) FROM prayers")
-
-
-@router.post("/community/pray")
-async def pray_for_rina() -> None:
-    # teehee
-    await services.database.execute("INSERT INTO prayers VALUES ()")
