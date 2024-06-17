@@ -22,10 +22,7 @@ async def admin_users(
         return ORJSONResponse({"error": "insufficient permission"})
 
     safe_search = unquote(search).lower().replace(" ", "_")
-
-    limit = page * entries
     offset = (page - 1) * entries
-
     query = "SELECT username, id, country, privileges, registered_time, privileges FROM users WHERE safe_username LIKE :search "
     count_query = "SELECT COUNT(*) FROM users WHERE safe_username LIKE :search "
     params = {"search": f"%{safe_search}%"}
@@ -36,7 +33,7 @@ async def admin_users(
         params["country"] = country
 
     query += "LIMIT :limit OFFSET :offset"
-    params |= {"limit": limit, "offset": offset}
+    params |= {"limit": entries, "offset": offset}
     users = await services.database.fetch_all(query, params)
 
     params.pop("limit")

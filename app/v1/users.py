@@ -94,25 +94,78 @@ async def get_user_achievements(
 
 @router.get("/users/get/{user_id}/activities")
 async def get_user_recent_activities(
-    user_id: int, page: int = Query(1), info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
+    user_id: int, page: int = Query(1, ge=1), info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
 ) -> ORJSONResponse:
-    limit = 10 * page
     offset = 10 * (page - 1)
 
     data = await services.database.fetch_all(
         "SELECT a.id, a.activity, b.map_id, b.set_id, b.title, b.artist, b.version, a.timestamp " 
         "FROM recent_activities a INNER JOIN beatmaps b ON b.map_md5 = a.map_md5 WHERE a.user_id = :user_id "
-        "AND a.mode = :mode AND a.gamemode = :gamemode LIMIT :limit OFFSET :offset ", 
+        "AND a.mode = :mode AND a.gamemode = :gamemode LIMIT 10 OFFSET :offset ", 
         {
             "user_id": user_id, 
             "mode": info.mode, 
             "gamemode": info.gamemode, 
-            "offset": offset, 
-            "limit": limit
+            "offset": offset
         }
     )
 
     return ORJSONResponse([dict(activity) for activity in data])
+
+@router.get("/users/scores/{user_id}/best")
+async def get_users_best(
+    user_id: int, 
+    page: int = Query(1, ge=1), 
+    info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
+) -> ORJSONResponse:
+    offset = 10 * (page - 1)
+    scores = await services.database.fetch_all(
+        "SELECT b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
+        "s.mods, s.pp, s.accuracy, s.count_miss, s.count_50, s.count_100, s.count_300, s.rank, "
+        "s.count_geki, s.count_katu, s.score FROM scores s INNER JOIN beatmaps b ON b.map_md5 = s.map_md5 "
+        "WHERE s.status = 3 AND s.awards_pp = 1 AND s.gamemode = :gamemode AND s.mode = :mode "
+        "AND s.user_id = :user_id ORDER BY s.pp DESC LIMIT 10 OFFSET :offset", 
+        {"user_id": user_id, "gamemode": info.gamemode, "mode": info.mode, "offset": offset}
+    )
+    
+    return ORJSONResponse([dict(score) for score in scores])
+
+@router.get("/users/scores/{user_id}/recent")
+async def get_users_recent(
+    user_id: int, 
+    page: int = Query(1, ge=1), 
+    info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
+) -> ORJSONResponse:
+    offset = 10 * (page - 1)
+    scores = await services.database.fetch_all(
+        "SELECT s.id, b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
+        "s.mods, s.pp, s.accuracy, s.count_miss, s.count_50, s.count_100, s.count_300, s.rank, "
+        "s.count_geki, s.count_katu, s.score FROM scores s INNER JOIN beatmaps b ON b.map_md5 = s.map_md5 "
+        "WHERE s.gamemode = :gamemode AND s.mode = :mode AND s.user_id = :user_id ORDER BY s.submitted DESC "
+        "LIMIT 10 OFFSET :offset", 
+        {"user_id": user_id, "gamemode": info.gamemode, "mode": info.mode, "offset": offset}
+    )
+    
+    return ORJSONResponse([dict(score) for score in scores])
+
+# @router.get("/users/scores/{user_id}/first")
+# async def get_user_scores(
+#     user_id: int, 
+#     page: int = Query(1, ge=1), 
+#     info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
+# ) -> ORJSONResponse:
+#     offset = 10 * (page - 1)
+#     scores = await services.database.fetch_all(
+#         "SELECT s.id, b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
+#         "s.mods, s.pp, s.accuracy, s.count_miss, s.count_50, s.count_100, s.count_300, s.rank, "
+#         "s.count_geki, s.count_katu, s.score FROM scores s INNER JOIN beatmaps b ON b.map_md5 = s.map_md5 "
+#         "WHERE s.gamemode = :gamemode AND s.mode = :mode AND s.user_id = :user_id "
+#         "ORDER BY s.pp DESC OFFSET :offset", 
+#         {"user_id": user_id, "gamemode": info.gamemode, "mode": info.mode, "offset": offset}
+#     )
+    
+#     return ORJSONResponse([dict(score) for score in scores])
+
 
 @router.get("/users/search")
 async def search_users(query: str) -> ORJSONResponse:
