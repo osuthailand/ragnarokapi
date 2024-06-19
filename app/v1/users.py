@@ -15,7 +15,8 @@ async def user_info(
         user_info := await services.database.fetch_one(
             "SELECT username, id, registered_time, latest_activity_time, country, "
             "privileges, userpage_content, preferred_gamemode, preferred_mode, "
-            "is_verified FROM users WHERE id = :user_id", {"user_id": user_id},
+            "is_verified, latest_activity_time FROM users WHERE id = :user_id", 
+            {"user_id": user_id},
         )
     ):
         return ORJSONResponse({"error": "user not found."})
@@ -53,8 +54,9 @@ async def get_user_stats(
     _data = await services.database.fetch_one(
         f"SELECT s.{info.mode.to_db("pp")}, s.{info.mode.to_db("accuracy")}, s.{info.mode.to_db("ranked_score")}, "
         f"s.{info.mode.to_db("total_score")}, s.{info.mode.to_db("playcount")}, s.{info.mode.to_db("playtime")}, "
-        f"s.{info.mode.to_db("level")}, s.{info.mode.to_db("max_combo")}, u.country FROM {info.gamemode.to_db} s "
-        "INNER JOIN users u ON u.id = s.id WHERE s.id = :user_id", {"user_id": user_id}
+        f"s.{info.mode.to_db("level")}, s.{info.mode.to_db("max_combo")}, s.{info.mode.to_db("replays_watched_by_others")}, "
+        f"u.country FROM {info.gamemode.to_db} s INNER JOIN users u ON u.id = s.id WHERE s.id = :user_id",
+        {"user_id": user_id}
     )
 
     if not _data:
@@ -120,7 +122,7 @@ async def get_users_best(
 ) -> ORJSONResponse:
     offset = 10 * (page - 1)
     scores = await services.database.fetch_all(
-        "SELECT b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
+        "SELECT s.id, b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
         "s.mods, s.pp, s.accuracy, s.count_miss, s.count_50, s.count_100, s.count_300, s.rank, "
         "s.count_geki, s.count_katu, s.score FROM scores s INNER JOIN beatmaps b ON b.map_md5 = s.map_md5 "
         "WHERE s.status = 3 AND s.awards_pp = 1 AND s.gamemode = :gamemode AND s.mode = :mode "

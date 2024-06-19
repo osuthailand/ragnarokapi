@@ -9,9 +9,9 @@ from app.api import router
 
 @router.get("/admin/friends/{user_id}")
 async def users_friendlist(
-    user_id: int, current_user: UserData = Depends(get_current_user)
+    user_id: int, current_user: UserData | None = Depends(get_current_user)
 ) -> ORJSONResponse:
-    if not current_user.privileges & Privileges.ADMIN:
+    if current_user is None or not current_user.privileges & Privileges.ADMIN:
         return ORJSONResponse({"response": "insufficient permission"})
 
     relationships = await services.database.fetch_all(

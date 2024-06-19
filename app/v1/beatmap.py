@@ -11,12 +11,10 @@ from app.api import router
 from app.utilities import ModeAndGamemode
 import services
 
-RAGNAROK_OSU_PATH = Path(os.environ["RAGNAROK_BEATMAP_PATH"])
-
 
 async def save_beatmap_file(map_id: int) -> None:
     """Saves a beatmap's .osu file to ragnarok."""
-    path = RAGNAROK_OSU_PATH / f"{map_id}.osu"
+    path = services.RAGNAROK_OSU_PATH / f"{map_id}.osu"
     if not path.exists():
         async with aiohttp.ClientSession() as sess:
             async with sess.get(
@@ -32,7 +30,9 @@ async def save_beatmap_file(map_id: int) -> None:
                 with path.open("w+") as osu:
                     osu.write(resp)
 
-                services.logger.info(f"Saved {map_id}.osu to {RAGNAROK_OSU_PATH!r}")
+                services.logger.info(
+                    f"Saved {map_id}.osu to {services.RAGNAROK_OSU_PATH!r}"
+                )
 
 
 def dictify_map(resp: dict[str, str], present_set: bool = False) -> dict[str, Any]:

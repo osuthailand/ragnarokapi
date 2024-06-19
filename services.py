@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from databases import Database
 from redis import asyncio as aioredis
 import os
@@ -10,3 +11,7 @@ redis = aioredis.from_url(
 
 logger = logging.getLogger("uvicorn.error")
 osu_key = os.environ["OSU_API_KEY"]
+
+RAGNAROK_OSU_PATH = Path(os.environ["RAGNAROK_BEATMAP_PATH"])
+AVATAR_PATH = Path(os.getenv("RAGNAROK_AVATAR_PATH"))
+

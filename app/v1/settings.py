@@ -9,7 +9,7 @@ from app.utilities import UserData, get_current_user
 
 from PIL import Image
 
-AVATAR_PATH = Path(os.getenv("RAGNAROK_AVATAR_PATH"))
+from services import AVATAR_PATH
 
 
 def remove_previous(id: int) -> None:
@@ -22,9 +22,12 @@ def remove_previous(id: int) -> None:
 @router.post("/settings/avatar")
 async def set_avatar(
     avatar: UploadFile,
-    current_user: UserData = Depends(get_current_user),
+    current_user: UserData | None = Depends(get_current_user),
     user_id: int | None = Query(None),
 ) -> ORJSONResponse:
+    if not current_user:
+        return ORJSONResponse({"error": "unauthorized"})
+
     # if the user is a moderator
     # the mod can change peoples avatar
     file_type = avatar.content_type.split("/")[1]
@@ -52,9 +55,12 @@ async def set_avatar(
 
 @router.delete("/settings/avatar")
 async def delete_avatar(
-    current_user: UserData = Depends(get_current_user),
+    current_user: UserData | None = Depends(get_current_user),
     user_id: int | None = Query(None),
 ) -> ORJSONResponse:
+    if not current_user:
+        return ORJSONResponse({"error": "unauthorized"})
+
     if current_user.privileges & Privileges.MODERATOR and user_id is not None:
         remove_previous(user_id)
     else:

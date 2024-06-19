@@ -14,7 +14,7 @@ async def changed_name_history(
     current_user: UserData = Depends(get_current_user),
     sorting: str = "descending",
 ) -> ORJSONResponse:
-    if not current_user.privileges & Privileges.MODERATOR:
+    if current_user is None or not current_user.privileges & Privileges.MODERATOR:
         return ORJSONResponse({"error": "insufficient permission"})
 
     if sorting not in ("descending", "ascending"):
@@ -36,7 +36,7 @@ async def changed_name_history(
 async def delete_name_history(
     name_id: int, current_user: UserData = Depends(get_current_user)
 ) -> ORJSONResponse:
-    if not current_user.privileges & Privileges.MODERATOR:
+    if current_user is None or not current_user.privileges & Privileges.MODERATOR:
         return ORJSONResponse({"error": "insufficient permission"})
 
     data = await services.database.fetch_one(
@@ -72,7 +72,7 @@ async def add_name_history(
     date: int = Form(),
     current_user: UserData = Depends(get_current_user),
 ) -> ORJSONResponse:
-    if not current_user.privileges & Privileges.MODERATOR:
+    if current_user is None or not current_user.privileges & Privileges.MODERATOR:
         return ORJSONResponse({"error": "insufficient permission"})
 
     await services.database.execute(

@@ -12,13 +12,13 @@ from app.api import router
 
 @router.get("/admin/users")
 async def admin_users(
-    current_user: UserData = Depends(get_current_user),
     search: str = Query(""),
     country: str = Query(""),
     entries: int = Query(50, ge=1),
     page: int = Query(1, ge=1),
+    current_user: UserData | None = Depends(get_current_user),
 ) -> ORJSONResponse:
-    if not current_user.privileges & Privileges.MODERATOR:
+    if current_user is None or not current_user.privileges & Privileges.MODERATOR:
         return ORJSONResponse({"error": "insufficient permission"})
 
     safe_search = unquote(search).lower().replace(" ", "_")

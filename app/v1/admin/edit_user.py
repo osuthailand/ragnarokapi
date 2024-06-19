@@ -12,10 +12,10 @@ async def edit_user_field(
     user_id: int,
     field: str = Form(),
     value: str | int = Form(),
-    current_user: UserData = Depends(get_current_user),
+    current_user: UserData | None = Depends(get_current_user),
 ) -> ORJSONResponse:
     # TODO: other fields requires different privileges
-    if not current_user.privileges & Privileges.ADMIN:
+    if current_user is None or not current_user.privileges & Privileges.ADMIN:
         return ORJSONResponse({"error": "insufficient permission"})
 
     if field not in ("userpage_content", "country", "username", "notes", "privileges"):
