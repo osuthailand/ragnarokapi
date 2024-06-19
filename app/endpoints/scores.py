@@ -1,6 +1,5 @@
 from app.constants.mods import Mods
 from app.constants.privileges import Privileges
-from app.v1 import beatmap
 import services
 
 from fastapi import Depends, Response
