@@ -1,6 +1,6 @@
 import io
 import os
-from pathlib import Path
+import services
 from fastapi import Depends, Query, UploadFile
 from fastapi.responses import ORJSONResponse
 from app.api import router
@@ -67,3 +67,56 @@ async def delete_avatar(
         remove_previous(current_user.user_id)
 
     return ORJSONResponse({"response": "success"})
+
+
+@router.get("/friendship/{user_id}")
+async def get_friendship_status(
+    user_id: int,
+    current_user: UserData | None = Depends(get_current_user),
+) -> ORJSONResponse:
+    if not current_user:
+        return ORJSONResponse({"error": "unauthorized"})
+
+    status = await services.database.fetch_val(
+        "SELECT CASE WHEN mutuals.user_id1 IS NOT NULL THEN 1 ELSE 0 END AS mutual "
+        "FROM friends f LEFT JOIN friends mutuals ON f.user_id1 = mutuals.user_id2 AND f.user_id2 = mutuals.user_id1 "
+        "WHERE f.user_id1 = :my_id AND f.user_id2 = :user_id LIMIT 1",
+        {"my_id": current_user.user_id, "user_id": user_id},
+    )
+
+    if status is None:
+        status = -1
+
+    return ORJSONResponse({"status": status})
+
+
+@router.post("/friendship/{user_id}")
+async def add_friend(
+    user_id: int,
+    current_user: UserData | None = Depends(get_current_user),
+) -> ORJSONResponse:
+    if not current_user:
+        return ORJSONResponse({"error": "unauthorized"})
+
+    await services.database.execute(
+        "INSERT INTO friends (user_id1, user_id2) VALUES (:my_id, :user_id)",
+        {"my_id": current_user.user_id, "user_id": user_id},
+    )
+
+    return ORJSONResponse({"status": "success"})
+
+
+@router.delete("/friendship/{user_id}")
+async def remove_friend(
+    user_id: int,
+    current_user: UserData | None = Depends(get_current_user),
+) -> ORJSONResponse:
+    if not current_user:
+        return ORJSONResponse({"error": "unauthorized"})
+
+    await services.database.execute(
+        "DELETE FROM friends WHERE user_id1 = :my_id AND user_id2 = :user_id",
+        {"my_id": current_user.user_id, "user_id": user_id},
+    )
+
+    return ORJSONResponse({"status": "success"})

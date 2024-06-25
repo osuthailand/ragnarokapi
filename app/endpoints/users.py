@@ -1,6 +1,7 @@
 from urllib.parse import unquote
 from fastapi import Depends, Query
 from fastapi.responses import ORJSONResponse
+from pydantic import BaseModel
 from app.api import router
 from app.utilities import parse_including_query, ModeAndGamemode
 
@@ -13,9 +14,9 @@ async def user_info(
 ) -> ORJSONResponse:
     if not (
         user_info := await services.database.fetch_one(
-            "SELECT username, id, registered_time, latest_activity_time, country, "
-            "privileges, userpage_content, preferred_gamemode, preferred_mode, "
-            "is_verified, latest_activity_time FROM users WHERE id = :user_id", 
+            "SELECT username, id, registered_time, latest_activity_time, country, playstyles, "
+            "privileges, userpage_content, preferred_gamemode, preferred_mode, is_verified, "
+            "latest_activity_time FROM users WHERE id = :user_id", 
             {"user_id": user_id},
         )
     ):
@@ -45,6 +46,18 @@ async def user_info(
     data["name_history"] = [dict(name) for name in name_history] if name_history else []
 
     return ORJSONResponse(data)
+
+
+class Grades(BaseModel):
+    XH: int = 0
+    X: int = 0
+    SH: int = 0
+    S: int = 0
+    A: int = 0
+    B: int = 0
+    C: int = 0
+    D: int = 0
+    F: int = 0
 
 
 @router.get("/users/get/{user_id}/stats")
@@ -77,6 +90,14 @@ async def get_user_stats(
         "global": global_rank,
         "country": country_rank
     }
+
+    rank_counter = await services.database.fetch_all(
+        "SELECT COUNT(rank) AS count, rank FROM scores WHERE gamemode = :gamemode "
+        "AND mode = :mode AND status = 3 AND user_id = :user_id GROUP BY rank",
+        {"gamemode": info.gamemode, "mode": info.mode, "user_id": user_id}
+    )
+
+    data["grades"] = Grades(**{grade["rank"]: grade["count"] for grade in rank_counter}).model_dump()
 
     return ORJSONResponse(dict(data))
 
@@ -149,25 +170,6 @@ async def get_users_recent(
     )
     
     return ORJSONResponse([dict(score) for score in scores])
-
-# @router.get("/users/scores/{user_id}/first")
-# async def get_user_scores(
-#     user_id: int, 
-#     page: int = Query(1, ge=1), 
-#     info: ModeAndGamemode = Depends(ModeAndGamemode.parse)
-# ) -> ORJSONResponse:
-#     offset = 10 * (page - 1)
-#     scores = await services.database.fetch_all(
-#         "SELECT s.id, b.title, b.artist, b.version, b.set_id, b.map_id, s.submitted, s.max_combo, "
-#         "s.mods, s.pp, s.accuracy, s.count_miss, s.count_50, s.count_100, s.count_300, s.rank, "
-#         "s.count_geki, s.count_katu, s.score FROM scores s INNER JOIN beatmaps b ON b.map_md5 = s.map_md5 "
-#         "WHERE s.gamemode = :gamemode AND s.mode = :mode AND s.user_id = :user_id "
-#         "ORDER BY s.pp DESC OFFSET :offset", 
-#         {"user_id": user_id, "gamemode": info.gamemode, "mode": info.mode, "offset": offset}
-#     )
-    
-#     return ORJSONResponse([dict(score) for score in scores])
-
 
 @router.get("/users/search")
 async def search_users(query: str) -> ORJSONResponse:

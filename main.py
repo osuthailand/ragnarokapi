@@ -3,6 +3,8 @@ from app import api
 import os
 import services
 
+from fastapi.middleware.cors import CORSMiddleware
+
 
 async def startup() -> None:
     # Make sure the enviormentmeoiintal variables exists
@@ -33,5 +35,13 @@ async def shutdown() -> None:
 
 
 app = FastAPI(on_startup=[startup], on_shutdown=[shutdown])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://new.rina.place", "https://admin.rina.place"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization"],
+)
 
 app.include_router(api.router)

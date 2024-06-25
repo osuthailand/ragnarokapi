@@ -47,6 +47,10 @@ async def leaderboard(
 
     users = [dict(user) for user in _users]
 
+    for user in users:
+        # maybe not so smart?? idk
+        user["rank"] = await services.redis.zrevrank(redis_key, str(user["id"])) + 1
+
     return ORJSONResponse({"users": users, "count": len(_user_id_range)})
 
 
