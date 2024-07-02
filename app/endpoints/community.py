@@ -20,7 +20,7 @@ async def leaderboard(
     offset = (page - 1) * 50
 
     # only get the users who are in the redis range thingy yup
-    # wondering if i should just ignore the users in redis, and 
+    # wondering if i should just ignore the users in redis, and
     # just use a order by in the sql query?
     redis_key = f"ragnarok:leaderboard:{info.gamemode.name.lower()}:{info.mode}"
     _user_id_range = await services.redis.zrevrange(
@@ -31,7 +31,7 @@ async def leaderboard(
 
     if not _user_id_range:
         return ORJSONResponse({"users": [], "count": 0})
-    
+
     if offset > len(_user_id_range):
         return ORJSONResponse({"users": [], "count": 0})
 

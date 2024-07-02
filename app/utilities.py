@@ -29,10 +29,10 @@ class Mode(IntEnum):
     CATCH = 2
     MANIA = 3
 
-    def to_db(self, field: str):
+    def to_db(self, field: str, with_alias: bool = True):
         """Converts the fields name, thats depended on the mode, to match the current mode."""
         mode = ("std", "taiko", "catch", "mania")[self.value]
-        return f"{field}_{mode} AS {field}"
+        return f"{field}_{mode}" + (f" AS {field}" if with_alias else "")
 
 
 class ModeAndGamemode:
@@ -90,7 +90,7 @@ class UserData(BaseModel):
 async def get_current_user(authorization: str | None = Header(None)) -> UserData | None:
     if not authorization:
         return
-    
+
     type, token = authorization.split()
 
     if type.lower() != "bearer":
@@ -128,10 +128,9 @@ async def log(user_id: int, note: str) -> None:
     )
 
 
-
-
 async def write_replay(score_id: int) -> bytearray | None:
     RAGNAROK_REPLAYS_PATH = Path(os.environ["RAGNAROK_REPLAYS_PATH"])
+
     def write_uleb128(value: int) -> bytearray:
         if value == 0:
             return bytearray(b"\x00")

@@ -51,9 +51,9 @@ async def users_friendlist(
     )
 
     await log(
-        user_id=current_user.user_id, 
+        user_id=current_user.user_id,
         note=f"has updated {beatmap["artist"]} - {beatmap["title"]} ({beatmap["version"]})'s "
-             f"ranked status from {Approved(beatmap["approved"]).name.lower()} to {ranked_status.name.lower()}"
+        f"ranked status from {Approved(beatmap["approved"]).name.lower()} to {ranked_status.name.lower()}",
     )
 
     return ORJSONResponse({"response": "ok"})

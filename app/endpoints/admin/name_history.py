@@ -52,7 +52,9 @@ async def delete_name_history(
         "DELETE FROM name_history WHERE id = :name_id", {"name_id": name_id}
     )
 
-    readable_date = datetime.strftime(datetime.fromtimestamp(data["date"]), "%d/%m/%Y %H:%M:%S")
+    readable_date = datetime.strftime(
+        datetime.fromtimestamp(data["date"]), "%d/%m/%Y %H:%M:%S"
+    )
 
     await log(
         current_user.user_id,
