@@ -55,7 +55,7 @@ async def get_user_history(
     info: ModeAndGamemode = Depends(ModeAndGamemode.parse),
 ) -> ORJSONResponse:
     graph_data = await services.database.fetch_all(
-        f"SELECT {graph}, timestamp FROM profile_history WHERE mode = :mode "
+        f"SELECT {graph} AS value, timestamp FROM profile_history WHERE mode = :mode "
         "AND gamemode = :gamemode AND user_id = :user_id ORDER BY timestamp DESC "
         "LIMIT 90",
         {
@@ -77,7 +77,7 @@ async def get_user_history(
             f" WHERE id = :user_id AND {info.mode.to_db("pp", False)} != :last_pp ",
             {
                 "user_id": user_id,
-                "last_pp": last_type_update["pp"],
+                "last_pp": last_type_update["value"],
             },
         )
 
@@ -95,7 +95,7 @@ async def get_user_history(
                 },
             )
 
-            last_type_update["pp"] = should_update
+            last_type_update["value"] = should_update
 
     elif graph == "rank":
         _current_global_rank = await services.redis.zrevrank(
@@ -106,7 +106,7 @@ async def get_user_history(
             _current_global_rank + 1 if _current_global_rank is not None else 0
         )
 
-        if current_global_rank != last_type_update["rank"]:
+        if current_global_rank != last_type_update["value"]:
             await services.database.execute(
                 "UPDATE profile_history SET rank = :new_rank "
                 "WHERE gamemode = :gamemode AND mode = :mode "
@@ -120,7 +120,7 @@ async def get_user_history(
                 },
             )
 
-            last_type_update["rank"] = current_global_rank
+            last_type_update["value"] = current_global_rank
 
     return ORJSONResponse(data)
 
