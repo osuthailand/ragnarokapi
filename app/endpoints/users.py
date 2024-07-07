@@ -3,7 +3,7 @@ from fastapi import Depends, Query
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from app.api import router
-from app.utilities import parse_including_query, ModeAndGamemode
+from app.utilities import ModeAndGamemode
 
 import services
 

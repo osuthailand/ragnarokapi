@@ -1,10 +1,9 @@
 import os
 import bcrypt
 import jwt
-from app.utilities import UserData, get_current_user
 import services
 
-from fastapi import Depends, Form
+from fastapi import Form
 from datetime import datetime, timedelta
 
 from fastapi.responses import ORJSONResponse

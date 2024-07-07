@@ -30,7 +30,7 @@ async def set_avatar(
 
     # if the user is a moderator
     # the mod can change peoples avatar
-    file_type = avatar.content_type.split("/")[1]
+    file_type = avatar.content_type.split("/")[1]  # type: ignore
 
     if current_user.privileges & Privileges.MODERATOR and user_id is not None:
         path = AVATAR_PATH / f"{user_id}.{file_type}"
