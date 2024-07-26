@@ -46,9 +46,6 @@ class Beatmap(BaseModel):
 
     mods_diff: dict[str, Any] | None = None
 
-    class Config:
-        exclude = {"mods_diff"}
-
     async def save_to_directory(self) -> None:
         """Saves a beatmap's .osu file to ragnarok."""
         path = services.RAGNAROK_OSU_PATH / f"{self.map_id}.osu"
@@ -96,7 +93,7 @@ class Beatmap(BaseModel):
 
     @staticmethod
     async def ensure_full_set(_maps: list["Beatmap"]) -> list["Beatmap"]:
-        """Ensures all the beatmaps, in the set, is present in the database."""
+        """Ensures all the beatmaps, in the set, are present in the database."""
         # just take the first map, as they should all have the same
         # `full_set_present` value
         f_map = _maps[0]

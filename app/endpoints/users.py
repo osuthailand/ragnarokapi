@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta
 from urllib.parse import unquote
 from fastapi import Depends, Query
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from app.api import router
-from app.utilities import ModeAndGamemode
+from app.constants.privileges import Privileges
+from app.utilities import ModeAndGamemode, UserData, get_current_user
 
 import services
 
@@ -68,8 +70,8 @@ async def get_user_history(
     if not graph_data:
         return ORJSONResponse([])
 
-    data = [dict(d) for d in graph_data]
-    last_type_update = data[0]
+    data = [dict(d) for d in graph_data[::-1]]
+    last_type_update = data[-1]
 
     if graph == "pp":
         should_update = await services.database.fetch_val(
@@ -150,7 +152,7 @@ async def get_user_stats(
     )
 
     if not _data:
-        return ORJSONResponse({"error": "user doens't exist."})
+        return ORJSONResponse({"error": "user doesn't exist."})
 
     data = dict(_data)
 
@@ -200,11 +202,15 @@ async def get_user_recent_activities(
 ) -> ORJSONResponse:
     offset = 10 * (page - 1)
 
+    delimitation = datetime.now() - timedelta(days=7)
+
     data = await services.database.fetch_all(
         "SELECT a.id, a.activity, b.map_id, b.set_id, b.title, b.artist, b.version, a.timestamp "
         "FROM recent_activities a INNER JOIN beatmaps b ON b.map_md5 = a.map_md5 WHERE a.user_id = :user_id "
-        "AND a.mode = :mode AND a.gamemode = :gamemode LIMIT 10 OFFSET :offset ",
+        "AND a.mode = :mode AND a.gamemode = :gamemode AND a.timestamp >= :delimitation ORDER BY a.timestamp DESC "
+        "LIMIT 10 OFFSET :offset ",
         {
+            "delimitation": delimitation.timestamp(),
             "user_id": user_id,
             "mode": info.mode,
             "gamemode": info.gamemode,
@@ -268,7 +274,9 @@ async def search_users(query: str) -> ORJSONResponse:
     safe_query = unquote(query).lower().replace(" ", "_")
 
     users = await services.database.fetch_all(
-        "SELECT username, id, country FROM users WHERE safe_username LIKE :query LIMIT 10",
+        "SELECT username, id, country FROM users "
+        "WHERE safe_username LIKE :query AND privileges & 4 "
+        "LIMIT 10",
         {"query": f"%{safe_query}%"},
     )
 
