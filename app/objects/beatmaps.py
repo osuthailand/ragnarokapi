@@ -191,7 +191,10 @@ class Beatmap(BaseModel):
 
                     return maps
 
-                map = Beatmap.from_api_mapping(resp)
+                if not resp:
+                    return
+
+                map = Beatmap.from_api_mapping(resp[0])
 
                 if not disable_auto_save:
                     await map.save()

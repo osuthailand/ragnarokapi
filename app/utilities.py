@@ -22,6 +22,10 @@ class Gamemode(IntEnum):
     def to_db(self) -> str:
         return "stats_rx" if self == Gamemode.RELAX else "stats"
 
+    @property
+    def score_order(self) -> str:
+        return "pp" if self == Gamemode.RELAX else "score"
+
 
 class Mode(IntEnum):
     STANDARD = 0
